@@ -1,0 +1,75 @@
+Doneu una sentència SQL per obtenir el nom dels professors que o bé se sap el seu número 
+de telèfon (valor diferent de null) i tenen un sou superior a 2500, o bé no se sap el seu 
+número de telèfon (valor null) i no tenen cap assignació a un despatx amb superfície inferior a 20.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NomProf
+toni
+
+	- Solució:
+
+	select nomprof
+from professors p
+where (p.telefon is not null and p.sou > 2500) or (p.telefon is null and not exists (select d.superficie
+                    from despatxos d, assignacions a
+                    where a.dni=p.dni and d.modul=a.modul and d.numero = a.numero and d.superficie<20));
+
+Donar una sentència SQL per obtenir els professors que tenen alguna assignació finalitzada (instantFi diferent de null) a un despatx amb superfície superior a 15 i que cobren un sou inferior o igual a la mitjana del sou de tots els professors. En el resultat de la consulta ha de sortir el dni del professor, el nom del professor, i el darrer instant en què el professor ha estat assignat a un despatx amb superfície superior a 15.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida ha de ser:
+
+DNI	NomProf	Darrer_instant
+111	toni	344
+
+	- Solució:
+	select p.dni,p.NomProf,  MAX(a.instantFI)
+	from professors p, assignacions a, despatxos d
+	where p.dni=a.dni and a.numero=d.numero and a.modul=d.modul and d.superficie>15
+	and a.instantFI IS NOT NULL and p.sou<=(  select avg(p1.sou)
+	from  professors p1)
+	group by p.dni;
+
+Suposem la base de dades que podeu trobar al fitxer adjunt.
+Suposem que aquesta base de dades està en un estat on no hi ha cap fila.
+Doneu una seqüència de sentències SQL d'actualització (INSERTs i/o UPDATEs) sobre la taula que 
+assignacions que violi la integritat referencial de la clau forana que referencia la taula Despatxos.
+Les sentències NOMÉS han de violar aquesta restricció.
+
+	- Solució:
+
+	insert into professors values ('1', 'victor', null, 1000000);
+	insert into despatxos values ('A', 'A', 13);
+	insert into assignacions values ('1', 'A', 'B', 1, 1);
+
+Suposeu la base de dades que podeu trobar al fitxer adjunt.
+Doneu una seqüència de sentències SQL d'actualització (INSERTs i/o UPDATEs) de tal manera que, un cop 
+executades, el resultat de la consulta següent sigui el que s'indica. El nombre de files de cada taula 
+ha de ser el més petit possible, i hi ha d'haver com a màxim un professor.
+
+Per a la consulta:
+
+Select count(*) as quant
+From assignacions ass
+Where ass.instantInici>50
+Group by ass.instantInici
+order by quant;
+
+El resultat haurà de ser:
+
+quant
+1
+2
+
+	- Solució:
+	insert into professors
+	values (1, 'Jordi', 6, 1000);
+
+	insert into despatxos values
+	('A', 'A', 15),
+	('A', 'B', 15);
+
+	insert into assignacions values
+	(1, 'A', 'A', 51, 53),
+	(1, 'A', 'A', 52, 53),
+	(1, 'A', 'B', 52, 54);

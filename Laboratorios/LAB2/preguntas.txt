@@ -1,0 +1,81 @@
+Doneu una sentència SQL per obtenir el número i el nom dels departaments que no tenen cap empleat que visqui a MADRID.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NUM_DPT		NOM_DPT
+3		MARKETING
+
+	- Solució:
+	select num_dpt, nom_dpt from departaments d where not exists (select * from empleats e
+	where e.num_dpt = d.num_dpt and e.ciutat_empl = 'MADRID');
+
+Doneu una sentència SQL per obtenir les ciutats on hi viuen empleats però no hi ha cap departament.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+CIUTAT_EMPL
+GIRONA
+
+	- Solució:
+	select distinct ciutat_empl from empleats e where (not exists (select * from departaments d
+	where e.ciutat_empl = d.ciutat_dpt) and 1 <= (select count (*) from empleats
+	where e.ciutat_empl is not null));
+
+Doneu una sentència SQL per obtenir el número i nom dels departaments que tenen dos o més empleats que viuen a ciutats diferents.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NUM_DPT		NOM_DPT
+3		MARKETING
+
+	- Solució:
+	select d.num_dpt, d.nom_dpt 
+	from departaments d, empleats e 
+	where (d.num_dpt = e.num_dpt) 
+	group by d.num_dpt 
+	having (2 <= count(distinct e.ciutat_empl));
+
+Tenint en compte l'esquema de la BD que s'adjunta, proposeu una sentència de creació de les taules següents:
+comandes(numComanda, instantComanda, client, encarregat, supervisor)
+productesComprats(numComanda, producte, quantitat, preu)
+
+La taula comandes conté les comandes fetes.
+La taula productesComprats conté la informació dels productes comprats a les comandes de la taula comandes.
+
+En la creació de les taules cal que tingueu en compte que:
+- No hi poden haver dues comandes amb un mateix número de comanda.
+- Un client no pot fer dues comandes en una mateix instant.
+- L'encarregat és un empleat que ha d'existir necessariament a la base de dades, i que té sempre tota comanda.
+- El supervisor és també un empleat de la base de dades i que s'assigna a algunes comandes en certes circumstàncies.
+- No hi pot haver dues vegades un mateix producte en una mateixa comanda. Ja que en cas de el client compri més d'una unitat d'un
+  producte en una mateixa comanda s'indica en l'atribut quantitat.
+- Un producte sempre s'ha comprat en una comanda que ha d'existir necessariament a la base de dades.
+- La quantitat de producte comprat en una comanda no pot ser nul, i té com a valor per defecte 1.
+- Els atributs numComanda, instantComanda, quantitat i preu són de tipus integer.
+- Els atributs client, producte són char(30), i char(20) respectivament.
+- L'atribut instantComanda no pot tenir valors nuls.
+
+Respecteu els noms i l'ordre en què apareixen les columnes (fins i tot dins la clau o claus que calgui definir). Tots els noms 
+s'han de posar en majúscules/minúscules com surt a l'enunciat.
+
+	- Solució:
+	create table comandes (
+		numComanda INT,
+		instantComanda INT UNIQUE NOT NULL,
+		client CHAR(30),
+		encarregat INT NOT NULL,
+		supervisor INT,
+		PRIMARY KEY (numComanda),
+		FOREIGN KEY (encarregat) REFERENCES EMPLEATS,
+		FOREIGN KEY (supervisor) REFERENCES EMPLEATS
+	);
+	
+
+	create table productesComprats(
+		numComanda INT,
+		producte CHAR(20),
+		quantitat INT NOT NULL DEFAULT 1,
+		preu INT NOT NULL,
+		PRIMARY KEY(numComanda, producte),
+		FOREIGN KEY (numComanda) REFERENCES comandes
+	);

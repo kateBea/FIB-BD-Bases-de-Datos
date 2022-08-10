@@ -1,0 +1,38 @@
+Doneu una sentència SQL per obtenir els números i els noms dels projectes que tenen assignats dos o més empleats.
+Cal ordenar el resultat descendement per número de projecte.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NUM_PROJ		NOM_PROJ
+1		IBDTEL
+
+	- Solució:
+	SELECT num_proj, nom_proj
+	FROM projectes
+	WHERE 1 < (SELECT COUNT(*) FROM empleats e WHERE projectes.num_proj = e.num_proj)
+	ORDER BY num_proj DESC;
+
+Doneu una sentència SQL per obtenir el nom dels empleats que guanyen el sou més alt. Cal ordenar el resultat descendenment per nom de l'empleat.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NOM_EMPL
+JOAN
+
+	- Solució:
+	SELECT DISTINCT e.nom_empl
+	FROM empleats e
+	WHERE e.sou >= (SELECT MAX(e1.sou) FROM empleats e1)
+	ORDER BY e.nom_empl DESC;
+
+Doneu una sentència SQL per incrementar en 500000 el pressupost
+dels projectes que tenen algun empleat que treballa a BARCELONA.
+Pel joc de proves que trobareu al fitxer adjunt, el pressupost del 
+projecte que hi ha d'haver després de l'execució de la sentència és 1100000
+
+	- Solució:
+	UPDATE projectes
+	SET pressupost = pressupost + 500000
+	WHERE 0 < (SELECT COUNT(*)
+		FROM empleats e, departaments d
+		WHERE e.num_proj = projectes.num_proj AND e.num_dpt = d.num_dpt AND d.ciutat_dpt = 'BARCELONA');

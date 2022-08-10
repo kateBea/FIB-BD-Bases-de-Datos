@@ -1,0 +1,99 @@
+En aquest exercici es tracta definir els disparadors necessaris sobre empleats2 (veure definició de la base de dades al fitxer adjunt) per mantenir la restricció següent:
+Els valors de l'atribut ciutat1 de la taula empleats1 han d'estar inclosos en els valors de ciutat2 de la taula empleats2
+Per mantenir la restricció, la idea és que:
+
+En lloc de treure un missatge d'error en cas que s'intenti executar una sentència sobre empleats2 que pugui violar la restricció,
+cal executar operacions compensatories per assegurar el compliment de l'asserció. En concret aquestes operacions compensatories ÚNICAMENT podran ser operacions DELETE.
+
+Pel joc de proves que trobareu al fitxer adjunt, i la sentència:
+DELETE FROM empleats2 WHERE nemp2=1;
+La sentència s'executarà sense cap problema,i l'estat de la base de dades just després ha de ser:
+
+Taula empleats1
+nemp1	nom1	ciutat1
+1	joan	bcn
+2	maria	mad
+
+Taula empleats2
+nemp2	nom2	ciutat2
+2	pere	mad
+3	enric	bcn
+
+    - Solució:
+    CREATE OR REPLACE FUNCTION regla()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF (NOT EXISTS (SELECT * FROM empleats2 WHERE old.ciutat2 = ciutat2)) THEN
+            DELETE FROM empleats1 WHERE old.ciutat2 = empleats1.ciutat1;
+        END IF;
+        RETURN NULL;
+    END
+    $$LANGUAGE plpgsql;
+
+    CREATE TRIGGER ciutat_delete AFTER DELETE ON empleats2
+    FOR EACH ROW EXECUTE PROCEDURE regla();
+
+    CREATE TRIGGER ciutat_update AFTER UPDATE OF ciutat2 ON empleats2
+    FOR EACH ROW EXECUTE PROCEDURE regla();
+
+
+Disposem de la base de dades del fitxer adjunt que gestiona clubs esportius i socis d'aquests clubs.
+Cal implementar un procediment emmagatzemat "assignar_individual(nomSoci,nomClub)".
+
+El procediment ha de:
+- Enregistrar l'assignació del soci nomSoci al club nomClub, inserint la fila corresponent a la taula Socisclubs.
+- Si el club nomClub passa a tenir més de 5 socis, inserir el club a la taula Clubs_amb_mes_de_5_socis.
+- El procediment no retorna cap resultat.
+
+Les situacions d'error que cal identificar són les tipificades a la taula missatgesExcepcions.
+Quan s'identifiqui una d'aquestes situacions cal generar una excepció:
+SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=___; ( 1 .. 5, depenent de l'error)
+RAISE EXCEPTION '%',missatge; (missatge ha de ser una variable definida al vostre procediment)
+
+Suposem el joc de proves que trobareu al fitxer adjunt i la sentència
+select * from assignar_individual('anna','escacs');
+La sentència s'executarà sense cap problema, i l'estat de la base de dades just després ha de ser:
+
+Taula Socisclubs
+anna	escacs
+joanna	petanca
+josefa	petanca
+pere	petanca
+Taula clubs_amb_mes_de_5_soci
+sense cap fila
+
+    - Solució (7.5 de nota):
+    create or replace function assignar_individual(nomSoci char(10), nomClub char(10)) 
+    returns void as $$
+    declare missatge varchar(100);
+    begin
+        
+        if (not exists (select * from socis where nsoci = nomSoci) or not exists (select * from clubs where nclub = nomClub)) then
+            SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=4;
+            RAISE EXCEPTION '%',missatge;
+        
+        elsif ((select count(*) from socisclubs where nclub = nomClub) >= 10) then
+            SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=1;
+            RAISE EXCEPTION '%',missatge;
+        
+        elsif (exists (select * from socisclubs where nsoci = nomSoci and nclub = nomClub)) then
+            SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=3;
+            RAISE EXCEPTION '%',missatge;
+        end if;
+            
+        insert into socisclubs values (nomSoci, nomClub);
+
+        if ((select count(*) from socis natural inner join socisclubs where sexe = 'M') > (select count(*) from socis natural inner join socisclubs where sexe = 'F')) then
+            SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=2;
+            RAISE EXCEPTION '%',missatge;
+            delete from socisclubs where nsoci = nomSoci and nclub = nomClub;
+        end if;
+        
+        exception
+            when raise_exception then
+                raise exception '%', SQLERRM;
+            when others then
+                raise exception 'Error intern';
+
+    end
+    $$language plpgsql;

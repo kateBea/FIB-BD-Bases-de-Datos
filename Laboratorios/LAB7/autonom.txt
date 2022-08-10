@@ -1,0 +1,40 @@
+Pregunta 1:
+CREATE TRIGGER Esborrar
+AFTER delete ON empleats
+FOR EACH STATEMENT EXECUTE PROCEDURE canviaPressupost();
+
+En cas que s'executi un DELETE que elimini 10 empleats, 
+quantes vegades s'executa el procediment canviaPressupost?
+
+    - Només s'executa un cop
+
+Pregunta 2:
+CREATE TRIGGER Esborrar
+AFTER delete ON empleats
+FOR EACH ROW EXECUTE PROCEDURE canviaPressupost();
+
+En cas que s'executi un DELETE que elimini 10 empleats, quantes 
+vegades s'executa el procediment canviaPressupost?
+
+    - S'executa 10 vegades
+
+Pregunta 3:
+Les variables NEW i OLD tenen valor en procediments activats per triggers.
+
+    - Només en triggers FOR EACH ROW
+
+Pregunta 4:
+En un trigger INSERT, BEFORE ROW o AFTER ROW, té valor la variable:
+
+    - Té valor la variable NEW
+
+Pregunta 5:
+El fer RETURN NEW o RETURN OLD, NOMÉS pot canviar el resultat de l'esdeveniment 
+que s'activa en el cas de triggers de tipus:
+
+    - BEFORE ROW
+
+Pregunta 6:
+En un trigger DELETE, BEFORE ROW o AFTER ROW, té valor la variable:
+
+    - Té valor la variable OLD.

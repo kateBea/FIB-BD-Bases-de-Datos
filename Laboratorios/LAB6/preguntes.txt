@@ -1,0 +1,85 @@
+Donat un intèrval de DNIs, programar un procediment emmagatzemat "llistat_treb(dniIni,dniFi)" per obtenir la informació de 
+cadascun dels treballadors amb un DNI d'aquest interval.
+
+Per cada treballador de l'interval cal obtenir:
+- Les seves dades personals: dni, nom, sou_base i plus
+
+- En cas que el treballador tingui 5 o més lloguers actius, al llistat hi ha de sortir una fila per cadascun dels cotxes 
+que té llogats.
+- En qualsevol altre cas, al llistat hi ha de sortir una única fila amb les dades del treballador, i nul a la matrícula.
+
+Tingueu en compte que:
+- Es vol que retorneu els treballadors ordenats per dni i matricula de forma ascendent.
+- El tipus de les dades que s'han de retornar han de ser els mateixos que hi ha a la taula on estan definits els atributs 
+corresponents.
+
+El procediment ha d'informar dels errors a través d'excepcions. Les situacions d'error que heu d'identificar són les 
+tipificades a la taula missatgesExcepcions, que podeu trobar definida i amb els inserts corresponents al fitxer adjunt.
+En el vostre procediment heu d'incloure, on s'identifiquin aquestes situacions, les sentències:
+SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=___; ( 1 o 2, depenent de l'error)
+RAISE EXCEPTION '%',missatge;
+On la variable missatge ha de ser una variable definida al vostre procediment.
+
+Pel joc de proves que trobareu al fitxer adjunt i la crida següent,
+SELECT * FROM llistat_treb('11111111','33333333');
+el resultat ha de ser:
+
+DNI		Nom		Sou		Plus		Matricula
+22222222		Joan		1700		150		1111111111
+22222222		Joan		1700		150		2222222222
+22222222		Joan		1700		150		3333333333
+22222222		Joan		1700		150		4444444444
+22222222		Joan		1700		150		5555555555
+
+
+	- Solució:
+	CREATE TYPE trebTipus AS (
+	dni_cl 		char(8),
+	nom_cl 		char(30),
+	sou_base_cl real,
+	plus_cl 	real,
+	matricula	char(10)
+	);
+
+	CREATE OR REPLACE FUNCTION llistat_treb(dniIni char(8),dniFi char(8))
+	RETURNS SETOF trebTipus AS $$
+	DECLARE
+	trebTipus_t trebTipus;
+	missatge varchar(50);
+	BEGIN
+	--Selecciona tots el treballadors que estiguin dins el rang 
+	--que ens demanen
+	FOR trebTipus_t IN 
+		SELECT t.dni, t.nom, t.sou_base, t.plus
+		FROM treballadors t
+		WHERE t.dni >= dniIni AND t.dni <= dniFi
+	LOOP
+		--Si tenen al menys 5 lloguers actius retorne'ls per ordre
+		IF (5 <= (SELECT COUNT(*) FROM lloguers_actius l WHERE trebTipus_t.dni_cl = l.dni)) THEN
+			FOR trebTipus_t.matricula IN (SELECT l2.matricula FROM lloguers_actius l2 WHERE trebTipus_t.dni_cl = l2.dni)
+			LOOP 
+				RETURN NEXT trebTipus_t; 
+			END LOOP;
+
+		--Si no tenen mínim 5 lloguers actius retorna una tuple per treballador
+		-- i retorna NULL a la matrícula
+		ELSE RETURN NEXT trebTipus_t;
+		END IF;
+	END LOOP;
+
+	IF NOT FOUND THEN
+		SELECT texte INTO missatge
+		FROM missatgesExcepcions WHERE num = 1;
+		RAISE EXCEPTION '%', missatge;
+	END IF;
+	RETURN;
+
+	EXCEPTION
+	WHEN raise_exception THEN 
+	RAISE EXCEPTION '%', SQLERRM;
+
+	WHEN OTHERS THEN
+	SELECT texte INTO missatge FROM missatgesExcepcions WHERE num = 2;
+	RAISE EXCEPTION '%', missatge;
+	END;
+	$$LANGUAGE plpgsql;

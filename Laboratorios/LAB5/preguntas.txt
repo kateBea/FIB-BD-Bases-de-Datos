@@ -1,0 +1,121 @@
+Donar una sentència SQL per obtenir per cada mòdul on hi hagi despatxos, la suma de les durades de les 
+assignacions finalitzades (instantFi diferent de null) a despatxos del mòdul. El resultat ha d'estar 
+ordenat ascendentment pel nom del mòdul.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida ha de ser:
+
+MODUL		SUMAA
+Omega		235
+
+    - Solució:
+    SELECT d.modul, SUM(instantFi-instantInici) AS SUMAA
+    FROM DESPATXOS d NATURAL INNER JOIN ASSIGNACIONS a
+    WHERE d.modul = a.modul AND instantFi IS NOT NULL
+    GROUP BY d.modul
+    ORDER BY d.modul ASC;
+
+Doneu una sentència SQL per obtenir els departaments tals que tots els empleats del departament estan
+assignats a un mateix projecte. No es vol que surtin a la consulta els departaments que no tenen cap empleet.
+Es vol el número, nom i ciutat de cada departament.
+
+Cal resoldre l'exercici sense fer servir funcions d'agregació.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+Num_dpt		Nom_dpt		Ciutat_dpt
+1		DIRECCIO		BARCELONA
+
+    - Solució:
+    SELECT d.num_dpt, d.nom_dpt, ciutat_dpt
+    FROM DEPARTAMENTS d NATURAL INNER JOIN EMPLEATS e
+    WHERE d.num_dpt = e.num_dpt AND NOT EXISTS (SELECT * 
+                                                FROM EMPLEATS e1
+                                                WHERE e.num_dpt = e1.num_dpt
+                                                AND e.num_proj <> e1.num_proj);
+
+Doneu una seqüència d'operacions en àlgebra relacional per obtenir el nom dels professors que o bé tenen 
+un sou superior a 2500, o bé que cobren menys de 2500 i no tenen cap assignació a un despatx amb superfície 
+inferior a 20.
+
+Pel joc de proves que trobareu al fitxer adjunt, la sortida seria:
+
+NomProf
+toni
+
+    - Solució:
+    A = PROFESSORS(sou > 2500)
+    B = PROFESSORS * DESPATXOS
+    C = B * ASSIGNACIONS
+    D = C(superficie < 20)
+    X = D[nomProf]
+    T= C[nomProf]
+    M = T - X
+    J = professors[nomProf]
+    H = J - X
+    Q = A[nomProf]
+    K = M _u_ H
+    R = Q _u_ K
+
+Doneu una sentència d'inserció de files a la taula cost_ciutat que l'ompli a partir del contingut de la resta 
+de taules de la base de dades. Tingueu en compte el següent:
+
+Cal inserir una fila a la taula cost_ciutat per cada ciutat on hi ha un o més departaments, però no hi ha cap
+ departament que tingui empleats.
+
+Per tant, només s'han d'inserir les ciutats on cap dels departaments situats a la ciutat tinguin empleats.
+
+El valor de l'atribut cost ha de ser 0.
+
+Pel joc de proves públic del fitxer adjunt, un cop executada la sentència d'inserció, a la taula cost_ciutat hi
+haurà les tuples següents:
+
+CIUTAT_DPT		COST
+BARCELONA		0
+
+    - Solució: 
+    INSERT INTO cost_ciutat (SELECT DISTINCT d.ciutat_dpt, 0
+                        FROM departaments d
+                        WHERE d.ciutat_dpt NOT IN (SELECT d2.ciutat_dpt
+                                                FROM empleats e1, departaments d2
+                                                WHERE e1.num_dpt = d2.num_dpt));
+
+Tenint en compte l'esquema de la BD que s'adjunta, proposeu una sentència de creació de la taula següent:
+presentacioTFG(idEstudiant, titolTFG, dniDirector, dniPresident, dniVocal, instantPresentacio, nota)
+
+Hi ha una fila de la taula per cada treball final de grau (TFG) que estigui pendent de ser presentat o que ja s'hagi 
+presentat.
+
+En la creació de la taula cal que tingueu en compte que:
+- No hi pot haver dos TFG d'un mateix estudiant.
+- Tot TFG ha de tenir un títol.
+- No hi pot haver dos TFG amb el mateix títol i el mateix director.
+- El director, el president i el vocal han de ser professors que existeixin a la base de dades, i tot TFG té sempre 
+  director, president i vocal.
+- El director del TFG no pot estar en el tribunal del TFG (no pot ser ni president, ni vocal).
+- El president i el vocal no poden ser el mateix professor.
+- L'identificador de l'estudiant i el títol del TFG són chars de 100 caràcters.
+- L'instant de presentació ha de ser un enter diferent de nul.
+- La nota ha de ser un enter entre 0 i 10.
+- La nota té valor nul fins que s'ha fet la presentació del TFG.
+
+Respecteu els noms i l'ordre en què apareixen les columnes (fins i tot dins la clau o claus que calgui definir). 
+Tots els noms s'han de posar en majúscues/minúscules com surt a l'enunciat.
+
+    - Solució:
+    CREATE TABLE presentacioTFG (
+	idEstudiant CHAR(100), 
+	titolTFG CHAR(100) NOT NULL,
+	dniDirector CHAR (50),
+	dniPresident CHAR(50),
+	dniVocal CHAR(50),
+	instantPresentació INT NOT NULL,
+	nota INT DEFAULT NULL,
+	FOREIGN KEY (dniDirector) REFERENCES professors(dni),
+	FOREIGN KEY (dniPresident) REFERENCES professors(dni),
+	FOREIGN KEY (dniVocal) REFERENCES professors(dni),
+	PRIMARY KEY (idEstudiant),
+	UNIQUE (titolTFG, dniDirector),
+	CONSTRAINT notSame CHECK (dniDirector<>dniPresident AND dniDirector<>dniVocal),
+	CONSTRAINT notSame2 CHECK (dniPresident<>dniVocal),
+	CONSTRAINT notaValida CHECK (nota BETWEEN 1 AND 10)
+    );
