@@ -50,16 +50,16 @@ insert into liniesComandes values (110, 'p222', 2);
 CREATE OR REPLACE FUNCTION delete_check() 
 RETURNS TRIGGER AS $$
 DECLARE
-	import_previ comandes.import%TYPE;
+    import_previ comandes.import%TYPE;
 
 BEGIN
-	import_previ := (SELECT import FROM comandes WHERE numComanda = NEW.numComanda);
+    import_previ := (SELECT import FROM comandes WHERE numComanda = NEW.numComanda);
 
     UPDATE comandes
     SET import = import_previ +  NEW.quantitat * (SELECT preu FROM productes WHERE idProducte = NEW.idProducte)
     WHERE numComanda = NEW.numComanda;
 
-  	RETURN NULL;
+    RETURN NULL;
 END;
 $$LANGUAGE plpgsql;
 
@@ -69,6 +69,3 @@ EXECUTE PROCEDURE delete_check();
 -- Joc proves públic
 INSERT INTO liniesComandes VALUES (110, 'p111', 2);
 SELECT * FROM comandes;
-
-
-
