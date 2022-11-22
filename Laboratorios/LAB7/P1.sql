@@ -62,21 +62,3 @@ CREATE TRIGGER delete_123 BEFORE DELETE OR UPDATE OF nempl ON empleats
 FOR EACH ROW EXECUTE PROCEDURE delete_check();
 
 DROP FUNCTION delete_check () CASCADE;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

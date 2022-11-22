@@ -18,80 +18,60 @@ No es pot esborrar l'empleat 123 ni modificar el seu número d'empleat
 	- Solució:
 	CREATE OR REPLACE FUNCTION delete_check() 
 	RETURNS TRIGGER AS $$
-	DECLARE 
-		missatge varchar(100);
+	DECLARE
+		dia_actual dia.dia%type;
+		missatge missatgesExcepcions.texte%type;
 
 	BEGIN
-		IF (TG_OP = 'DELETE') THEN
-		--Si es fa un delete s'esborra si no es l'empleat 123
-			IF (OLD.nempl = 123) THEN
+		SELECT dia INTO dia_actual FROM dia;
+		IF (dia_actual = 'dijous') THEN
 			SELECT texte INTO missatge FROM missatgesExcepcions WHERE num = 1;
 			RAISE EXCEPTION '%', missatge;
-			ELSE RETURN OLD;
-			END IF;
-		ELSEIF (TG_OP = 'UPDATE') THEN
-		--Si es fa un pdate es retorna valor modificat si no es l'empleat 123
-			IF (OLD.nempl = 123) THEN
-			SELECT texte INTO missatge FROM missatgesExcepcions WHERE num = 1;
-			RAISE EXCEPTION '%', missatge;
-			ELSE RETURN NEW;
-			END IF;
+		ELSE RETURN OLD;
 		END IF;
 
 		EXCEPTION
-			WHEN raise_exception THEN
-				RAISE EXCEPTION '%', SQLERRM;
-			WHEN OTHERS THEN
-				RAISE EXCEPTION 'Error intern';
-		
+		WHEN raise_exception THEN 
+			RAISE EXCEPTION '%', SQLERRM;
 	END;
 	$$ LANGUAGE plpgsql;
 
-	CREATE TRIGGER delete_123 BEFORE DELETE OR UPDATE OF nempl ON empleats 
-	FOR EACH ROW EXECUTE PROCEDURE delete_check();
-
-
-Implementar mitjançant disparadors la restricció d'integritat següent:
-No es poden esborrar empleats el dijous
-Tigueu en compte que:
-- Les restriccions d'integritat definides a la BD (primary key, foreign key,...) es violen amb menys freqüència 
-que la restricció comprovada per aquests disparadors.
-- El dia de la setmana serà el que indiqui la única fila que hi ha d'haver sempre insertada a la taula "dia". 
-Com podreu veure en el joc de proves que trobareu al fitxer adjunt, el dia de la setmana és el 'dijous'. 
-Per fer altres proves podeu modificar la fila de la taula amb el nom d'un altre dia de la setmana. IMPORTANT: 
-Tant en el programa com en la base de dades poseu el nom del dia de la setmana en MINÚSCULES.
-
-Cal informar dels errors a través d'excepcions tenint en compte les situacions tipificades a la taula 
-missatgesExcepcions, que podeu trobar definida (amb els inserts corresponents) al fitxer adjunt. 
-Concretament en el vostre procediment heu d'incloure, quan calgui, les sentències:
-SELECT texte INTO missatge FROM missatgesExcepcions WHERE num=__;(el número que sigui, depenent de l'error)
-RAISE EXCEPTION '%',missatge;
-La variable missatge ha de ser una variable definida al vostre procediment, i del mateix tipus que 
-l'atribut corresponent de l'esquema de la base de dades.
-
-Pel joc de proves que trobareu al fitxer adjunt i la instrucció:
-DELETE FROM empleats WHERE salari<=1000
-la sortida ha de ser:
-
-No es poden esborrar empleats el dijous
-
-	- Solució:
+	CREATE TRIGGER trigger BEFORE DELETE ON empleats FOR EACH STATEMENT
+	EXECUTE PROCEDURE delete_check();
 
 
 
 	
-En aquest exercici es tracta de mantenir de manera autom�tica, mitjan�ant triggers, l'atribut derivat import de la 
+En aquest exercici es tracta de mantenir de manera automàtica, mitjançant triggers, l'atribut derivat import de la 
 taula comandes.
 
-En concret, l'import d'una comanda �s igual a la suma dels resultats de multiplicar per cada l�nia de comanda, la 
-quantitat del producte de la l�nia pel preu del producte .
+En concret, l'import d'una comanda és igual a la suma dels resultats de multiplicar per cada línia de comanda, la 
+quantitat del producte de la línia pel preu del producte.
 
-Nom�s heu de considerar les operacions de tipus INSERT sobre la taula l�nies de comandes.
+Només heu de considerar les operacions de tipus INSERT sobre la taula línies de comandes.
 
-Pel joc de proves que trobareu al fitxer adjunt, i la sent�ncia: INSERT INTO liniesComandes VALUES (110, 'p111', 2);
-La sent�ncia s'executar� sense cap problema, i l'estat de la taula de comandes despr�s de la seva execuci� ha de ser:
+Pel joc de proves que trobareu al fitxer adjunt, i la senténcia: INSERT INTO liniesComandes VALUES (110, 'p111', 2);
+La senténcia s'executa sense cap problema, i l'estat de la taula de comandes després de la seva execució ha de ser:
 
 numcomanda		instantfeta		instantservida		numtelf		import
 110		1091		1101		null		30
 
 	- Solució:
+	CREATE OR REPLACE FUNCTION delete_check() 
+	RETURNS TRIGGER AS $$
+	DECLARE
+		import_previ comandes.import%TYPE;
+
+	BEGIN
+		import_previ := (SELECT import FROM comandes WHERE numComanda = NEW.numComanda);
+
+		UPDATE comandes
+		SET import = import_previ +  NEW.quantitat * (SELECT preu FROM productes WHERE idProducte = NEW.idProducte)
+		WHERE numComanda = NEW.numComanda;
+
+		RETURN NULL;
+	END;
+	$$LANGUAGE plpgsql;
+
+	CREATE TRIGGER insert_linia_comandes AFTER INSERT ON liniesComandes FOR EACH ROW
+	EXECUTE PROCEDURE delete_check();

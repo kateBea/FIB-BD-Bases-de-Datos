@@ -24,3 +24,26 @@ insert into missatgesExcepcions values(1,'No es poden esborrar empleats el dijou
 
 --Solució:
 
+CREATE OR REPLACE FUNCTION delete_check() 
+RETURNS TRIGGER AS $$
+DECLARE
+	dia_actual dia.dia%type;
+	missatge missatgesExcepcions.texte%type;
+
+BEGIN
+	SELECT dia INTO dia_actual FROM dia;
+	IF (dia_actual = 'dijous') THEN
+		SELECT texte INTO missatge FROM missatgesExcepcions WHERE num = 1;
+		RAISE EXCEPTION '%', missatge;
+	ELSE RETURN OLD;
+	END IF;
+
+	EXCEPTION
+	WHEN raise_exception THEN 
+		RAISE EXCEPTION '%', SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger BEFORE DELETE ON empleats FOR EACH STATEMENT
+EXECUTE PROCEDURE delete_check();
+
